@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EvalLake — LLM Quality Intelligence</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --abyss:    #020b16;
+  --depth:    #071524;
+  --surface:  #0c1e33;
+  --panel:    #112840;
+  --layer:    #163050;
+  --rim:      #1e3d5c;
+  --muted:    #4a7a9b;
+  --slate:    #7ea8c4;
+  --text:     #d4ebff;
+  --bright:   #eef6ff;
+  --signal:   #38bdf8;
+  --signal2:  #0ea5e9;
+  --pass:     #34d399;
+  --warn:     #fbbf24;
+  --fail:     #fb7185;
+  --pass-dim: rgba(52,211,153,.12);
+  --warn-dim: rgba(251,191,36,.12);
+  --fail-dim: rgba(251,113,133,.12);
+  --sig-dim:  rgba(56,189,248,.1);
+  --font-mono:'JetBrains Mono', 'Courier New', monospace;
+  --font-sans:'Inter', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--abyss);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--layer); border-radius: 3px; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 218px;
+  min-height: 100vh;
+  background: var(--depth);
+  border-right: 1px solid var(--rim);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  z-index: 20;
+}
+
+.logo-wrap {
+  padding: 18px 18px 16px;
+  border-bottom: 1px solid var(--rim);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.logo-mark {
+  width: 34px; height: 34px;
+  background: linear-gradient(145deg, var(--signal2) 0%, #0c4a6e 100%);
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+  box-shadow: 0 0 18px rgba(14,165,233,.35);
+}
+
+.logo-text {
+  font-weight: 700;
+  font-size: 15.5px;
+  color: var(--bright);
+  letter-spacing: -.01em;
+}
+
+.logo-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--muted);
+  background: var(--surface);
+  padding: 2px 7px;
+  border-radius: 20px;
+  border: 1px solid var(--rim);
+}
+
+.nav { padding: 14px 10px; flex: 1; overflow-y: auto; }
+
+.nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--muted);
+  padding: 0 8px;
+  margin-bottom: 4px;
+  margin-top: 18px;
+}
+.nav-label:first-child { margin-top: 0; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--slate);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background .12s, color .12s;
+  margin-bottom: 1px;
+  position: relative;
+}
+.nav-item:hover { background: var(--surface); color: var(--text); }
+.nav-item.active {
+  background: var(--sig-dim);
+  color: var(--signal);
+  border: 1px solid rgba(56,189,248,.15);
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 4px; bottom: 4px;
+  width: 3px;
+  background: var(--signal);
+  border-radius: 0 2px 2px 0;
+}
+.nav-icon { font-size: 14px; width: 18px; text-align: center; }
+
+.nav-pip {
+  margin-left: auto;
+  background: var(--fail);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.nav-pip.warn-pip { background: var(--warn); color: var(--abyss); }
+
+.sidebar-footer {
+  padding: 12px 14px;
+  border-top: 1px solid var(--rim);
+}
+.workspace-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  cursor: default;
+}
+.ws-avatar {
+  width: 26px; height: 26px;
+  background: linear-gradient(135deg, var(--signal2), #4f46e5);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+}
+.ws-name { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.ws-plan { font-size: 11px; color: var(--muted); }
+
+/* ── MAIN ── */
+.main {
+  margin-left: 218px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  height: 54px;
+  background: var(--depth);
+  border-bottom: 1px solid var(--rim);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 12px;
+  position: sticky; top: 0; z-index: 10;
+  flex-shrink: 0;
+}
+.crumb { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.crumb .current { color: var(--text); font-weight: 500; }
+.crumb .sep { color: var(--rim); }
+.crumb .link { cursor: pointer; transition: color .12s; }
+.crumb .link:hover { color: var(--signal); }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.sep-v { width: 1px; height: 20px; background: var(--rim); }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px;
+  border-radius: 7px;
+  font-size: 12.5px; font-weight: 500;
+  cursor: pointer; border: none;
+  transition: background .12s, box-shadow .12s;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--signal2);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(14,165,233,.3);
+}
+.btn-primary:hover { background: #0284c7; }
+.btn-secondary {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--rim);
+}
+.btn-secondary:hover { background: var(--panel); }
+.btn-ghost { background: transparent; color: var(--slate); }
+.btn-ghost:hover { background: var(--surface); color: var(--text); }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+
+/* ── CONTENT ── */
+.content { padding: 24px; flex: 1; overflow-y: auto; }
+
+/* ── SCREENS ── */
+.screen { display: none; }
+.screen.active { display: block; animation: fadeUp .2s ease; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── PAGE HEADER ── */
+.ph { margin-bottom: 22px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.ph-left {}
+.ph h1 { font-size: 20px; font-weight: 700; color: var(--bright); letter-spacing: -.02em; margin-bottom: 3px; }
+.ph p  { font-size: 12.5px; color: var(--slate); }
+.ph-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* ── ALERT BANNER ── */
+.alert-banner {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 16px;
+  border-radius: 9px;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+.alert-banner.warn {
+  background: var(--warn-dim);
+  border: 1px solid rgba(251,191,36,.25);
+  color: #fde68a;
+}
+.alert-banner .al-icon { font-size: 16px; flex-shrink: 0; }
+.alert-banner .al-msg { flex: 1; }
+.alert-banner strong { color: #fef3c7; }
+
+/* ── STAT GRID ── */
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--rim);
+  border-radius: 11px;
+  padding: 18px 20px;
+  transition: border-color .15s;
+}
+.stat-card:hover { border-color: var(--muted); }
+.stat-label { font-size: 11.5px; color: var(--slate); font-weight: 500; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.stat-val { font-family: var(--font-mono); font-size: 30px; font-weight: 700; line-height: 1; margin-bottom: 8px; letter-spacing: -.02em; }
+.stat-val.pass { color: var(--pass); }
+.stat-val.warn { color: var(--warn); }
+.stat-delta { font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+.stat-delta .up { color: var(--pass); }
+.stat-delta .down { color: var(--fail); }
+
+/* ── CARDS ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rim);
+  border-radius: 11px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+.card-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: 13.5px; font-weight: 600; color: var(--bright);
+  display: flex; align-items: center; gap: 8px;
+}
+.card-meta { font-size: 12px; color: var(--muted); }
+
+/* ── TWO-COLUMN ── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+
+/* ── CHARTS ── */
+.chart-labels { display: flex; justify-content: space-between; padding: 0 2px; margin-top: 6px; }
+.chart-label { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+
+/* ── TABLES ── */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th {
+  text-align: left;
+  font-size: 11px; font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase; letter-spacing: .06em;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--rim);
+  white-space: nowrap;
+}
+td { padding: 11px 14px; font-size: 13px; border-bottom: 1px solid rgba(30,61,92,.5); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr.clickable { cursor: pointer; transition: background .1s; }
+tr.clickable:hover td { background: rgba(56,189,248,.04); }
+
+/* ── MONO VALUES ── */
+.mono { font-family: var(--font-mono); }
+.chip {
+  display: inline-flex; align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--rim);
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--slate);
+}
+
+/* ── BADGES ── */
+.badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11.5px; font-weight: 600;
+}
+.badge-pass { background: var(--pass-dim); color: var(--pass); }
+.badge-warn { background: var(--warn-dim); color: var(--warn); }
+.badge-fail { background: var(--fail-dim); color: var(--fail); }
+.badge-sig  { background: var(--sig-dim);  color: var(--signal); }
+.badge-muted { background: rgba(74,122,155,.15); color: var(--slate); }
+
+/* ── PROGRESS BAR ── */
+.prog { height: 5px; background: var(--panel); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+.prog-fill { height: 100%; border-radius: 3px; }
+.prog-pass { background: var(--pass); }
+.prog-warn { background: var(--warn); }
+.prog-fail { background: var(--fail); }
+
+/* ── METRIC CARDS (run detail) ── */
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--rim);
+  border-radius: 11px;
+  padding: 20px;
+  text-align: center;
+}
+.metric-label { font-size: 11.5px; color: var(--slate); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+.metric-val { font-family: var(--font-mono); font-size: 40px; font-weight: 700; line-height: 1; margin-bottom: 4px; letter-spacing: -.03em; }
+.metric-val.pass { color: var(--pass); text-shadow: 0 0 24px rgba(52,211,153,.25); }
+.metric-val.warn { color: var(--warn); text-shadow: 0 0 24px rgba(251,191,36,.25); }
+.metric-val.fail { color: var(--fail); text-shadow: 0 0 24px rgba(251,113,133,.25); }
+.metric-threshold { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+
+/* ── GATE BANNER ── */
+.gate-banner {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 16px 20px;
+  border-radius: 10px;
+  margin-bottom: 22px;
+}
+.gate-banner.gb-pass { background: var(--pass-dim); border: 1px solid rgba(52,211,153,.25); }
+.gate-banner.gb-warn { background: var(--warn-dim); border: 1px solid rgba(251,191,36,.25); }
+.gate-banner.gb-fail { background: var(--fail-dim); border: 1px solid rgba(251,113,133,.25); }
+.gate-icon { font-size: 26px; flex-shrink: 0; margin-top: 1px; }
+.gate-title { font-size: 15px; font-weight: 700; color: var(--bright); margin-bottom: 4px; }
+.gate-desc { font-size: 12px; color: var(--slate); line-height: 1.6; }
+
+/* ── BACK BUTTON ── */
+.back { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12.5px; cursor: pointer; margin-bottom: 16px; transition: color .12s; }
+.back:hover { color: var(--signal); }
+
+/* ── LINEAGE ROW ── */
+.lin-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 1px solid rgba(30,61,92,.5); }
+.lin-row:last-child { border-bottom: none; }
+.lin-key { font-size: 12px; color: var(--slate); }
+
+/* ── MODEL CHIPS ── */
+.model-chips { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+.model-chips .label { font-size: 12px; color: var(--muted); }
+.mchip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 20px;
+  font-size: 12px; font-weight: 600; cursor: default;
+  border: 1.5px solid;
+}
+.mchip-sig { border-color: var(--signal); background: var(--sig-dim); color: var(--signal); }
+.mchip-vio { border-color: #a78bfa; background: rgba(167,139,250,.1); color: #c4b5fd; }
+.mchip-amb { border-color: var(--warn); background: var(--warn-dim); color: var(--warn); }
+.mchip-off { border-color: var(--rim); background: transparent; color: var(--muted); }
+.dot { width: 7px; height: 7px; border-radius: 50%; }
+
+/* ── GATE CONFIG ── */
+.thresh-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(30,61,92,.5);
+}
+.thresh-row:last-child { border-bottom: none; }
+.thresh-name { font-size: 13px; font-weight: 500; color: var(--text); width: 160px; }
+.thresh-desc { font-size: 12px; color: var(--muted); flex: 1; }
+.thresh-val { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--signal); width: 56px; text-align: right; }
+.toggle {
+  width: 36px; height: 20px;
+  background: var(--pass); border-radius: 10px;
+  position: relative; cursor: pointer; flex-shrink: 0;
+}
+.toggle::after {
+  content: ''; position: absolute;
+  width: 16px; height: 16px; background: #fff; border-radius: 50%;
+  top: 2px; right: 2px;
+}
+
+/* ── CODE BLOCK ── */
+.code-block {
+  background: var(--abyss);
+  border: 1px solid var(--rim);
+  border-radius: 8px;
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-x: auto;
+  margin-top: 14px;
+}
+.c-cmt  { color: #475569; }
+.c-key  { color: #94a3b8; }
+.c-prop { color: #93c5fd; }
+.c-str  { color: #86efac; }
+.c-kw   { color: var(--signal); }
+.c-val  { color: #fde68a; }
+
+/* ── PAGINATION ── */
+.pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--rim); }
+.pag-info { font-size: 12px; color: var(--muted); }
+.pag-btns { display: flex; gap: 4px; }
+
+/* ── FILTER BAR ── */
+.filter-bar { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+
+/* ── IMPACT TABLE DELTA ── */
+.dpos { color: var(--pass); font-family: var(--font-mono); font-weight: 600; }
+.dneg { color: var(--fail); font-family: var(--font-mono); font-weight: 600; }
+.dneu { color: var(--muted); font-family: var(--font-mono); }
+
+/* ── FAILING CATEGORIES ── */
+.fail-cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.fail-cat {}
+.fail-cat-top { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.fail-cat-name { font-size: 12.5px; color: var(--text); }
+.fail-cat-pct  { font-size: 12.5px; font-family: var(--font-mono); font-weight: 600; }
+
+/* ── SETTINGS SCREEN ── */
+.settings-empty { padding: 60px 24px; text-align: center; }
+.settings-empty .s-icon { font-size: 48px; margin-bottom: 16px; }
+.settings-empty h3 { font-size: 16px; font-weight: 600; color: var(--bright); margin-bottom: 8px; }
+.settings-empty p  { font-size: 13px; color: var(--muted); max-width: 380px; margin: 0 auto; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<aside class="sidebar">
+  <div class="logo-wrap">
+    <div class="logo-mark">🌊</div>
+    <span class="logo-text">EvalLake</span>
+    <span class="logo-badge">v0.1</span>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-label">Analytics</div>
+    <div class="nav-item active" id="nav-overview" onclick="goTo('overview',this)">
+      <span class="nav-icon">⊞</span> Overview
+    </div>
+    <div class="nav-item" id="nav-runs" onclick="goTo('runs',this)">
+      <span class="nav-icon">▷</span> Eval Runs
+      <span class="nav-pip warn-pip">2</span>
+    </div>
+    <div class="nav-item" id="nav-trends" onclick="goTo('trends',this)">
+      <span class="nav-icon">↗</span> Quality Trends
+    </div>
+
+    <div class="nav-label">Control</div>
+    <div class="nav-item" id="nav-gates" onclick="goTo('gates',this)">
+      <span class="nav-icon">⛨</span> Regression Gates
+    </div>
+    <div class="nav-item" id="nav-settings" onclick="goTo('settings',this)">
+      <span class="nav-icon">⚙</span> Settings
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="workspace-row">
+      <div class="ws-avatar">P</div>
+      <div>
+        <div class="ws-name">pareIT AI</div>
+        <div class="ws-plan">Pro Plan · 4 models</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<main class="main">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="crumb" id="crumb">
+      <span>EvalLake</span>
+      <span class="sep">›</span>
+      <span class="current">Overview</span>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-secondary btn-sm">⚡ Last 30d</button>
+      <div class="sep-v"></div>
+      <button class="btn btn-primary btn-sm" onclick="goTo('runs', document.getElementById('nav-runs'))">+ New Eval Run</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+  <!-- ═══════════════════════════════════════
+       SCREEN: OVERVIEW
+  ═══════════════════════════════════════ -->
+  <div class="screen active" id="screen-overview">
+    <div class="ph">
+      <div class="ph-left">
+        <h1>Quality Intelligence Overview</h1>
+        <p>Clinical AI copilot · Production · Updated 3 min ago</p>
+      </div>
+    </div>
+
+    <!-- Alert -->
+    <div class="alert-banner warn">
+      <span class="al-icon">⚠</span>
+      <span class="al-msg"><strong>claude-3-sonnet</strong> quality score dropped 6.2 pts on run EVL-2249. Faithfulness fell below the warn threshold (0.78 vs target ≥ 0.80).</span>
+      <button class="btn btn-ghost btn-sm" onclick="openRun('EVL-2249')">Investigate →</button>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">🎯 Quality Score</div>
+        <div class="stat-val pass">87.4</div>
+        <div class="stat-delta"><span class="up">▲ 1.2 pts</span>&nbsp;vs last week</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">🔁 Regression Rate</div>
+        <div class="stat-val warn">2.3%</div>
+        <div class="stat-delta"><span class="up">▼ 0.4%</span>&nbsp;vs last week</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">🧬 Models Tracked</div>
+        <div class="stat-val" style="color:var(--text)">4</div>
+        <div class="stat-delta" style="font-size:11px">gpt-4o · claude-3-sonnet · llama-3 · gemini</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">🐦 Online Canaries</div>
+        <div class="stat-val pass">3/3</div>
+        <div class="stat-delta"><span class="up">All green</span>&nbsp;· p99 lat 840ms</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <!-- Trend chart -->
+      <div class="card" style="margin-bottom:0">
+        <div class="card-hdr">
+          <span class="card-title">📊 30-Day Quality Trend</span>
+          <span class="badge badge-sig">gpt-4o</span>
+        </div>
+        <svg width="100%" height="148" viewBox="0 0 480 148" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#38bdf8" stop-opacity=".25"/>
+              <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <!-- Grid lines -->
+          <line x1="0" y1="28"  x2="480" y2="28"  stroke="#1e3d5c" stroke-width="1" stroke-dasharray="5,4"/>
+          <line x1="0" y1="72"  x2="480" y2="72"  stroke="#1e3d5c" stroke-width="1" stroke-dasharray="5,4"/>
+          <line x1="0" y1="116" x2="480" y2="116" stroke="#1e3d5c" stroke-width="1" stroke-dasharray="5,4"/>
+          <!-- Labels -->
+          <text x="8" y="32"  fill="#4a7a9b" font-size="10" font-family="JetBrains Mono,monospace">95</text>
+          <text x="8" y="76"  fill="#4a7a9b" font-size="10" font-family="JetBrains Mono,monospace">85</text>
+          <text x="8" y="120" fill="#4a7a9b" font-size="10" font-family="JetBrains Mono,monospace">75</text>
+          <!-- Area -->
+          <path d="M32,100 C60,92 88,88 116,80 S172,72 200,68 S256,58 284,54 S340,48 368,44 S424,38 464,36 L464,138 L32,138 Z" fill="url(#g1)"/>
+          <!-- Line -->
+          <path d="M32,100 C60,92 88,88 116,80 S172,72 200,68 S256,58 284,54 S340,48 368,44 S424,38 464,36"
+                fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+          <!-- Prompt change marker -->
+          <line x1="260" y1="16" x2="260" y2="138" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <text x="262" y="14" fill="#fbbf24" font-size="9" font-family="JetBrains Mono,monospace">prompt v2.1</text>
+          <!-- End dot -->
+          <circle cx="464" cy="36" r="4.5" fill="#38bdf8" stroke="#071524" stroke-width="2.5"/>
+        </svg>
+        <div class="chart-labels">
+          <span class="chart-label">Jun 1</span>
+          <span class="chart-label">Jun 8</span>
+          <span class="chart-label">Jun 15</span>
+          <span class="chart-label">Jun 22</span>
+          <span class="chart-label">Jun 26</span>
+        </div>
+      </div>
+
+      <!-- Recent runs -->
+      <div class="card" style="margin-bottom:0">
+        <div class="card-hdr">
+          <span class="card-title">📋 Recent Runs</span>
+          <button class="btn btn-ghost btn-sm" onclick="goTo('runs', document.getElementById('nav-runs'))">View all →</button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Run</th><th>Model</th><th>Score</th><th>Gate</th><th>When</th></tr></thead>
+            <tbody>
+              <tr class="clickable" onclick="openRun('EVL-2249')">
+                <td><span class="chip">EVL-2249</span></td>
+                <td style="color:var(--slate)">claude-3-sonnet</td>
+                <td><span class="mono" style="color:var(--warn);font-weight:700">81.2</span></td>
+                <td><span class="badge badge-warn">⚠ Warn</span></td>
+                <td style="color:var(--muted)">12m ago</td>
+              </tr>
+              <tr class="clickable" onclick="openRun('EVL-2248')">
+                <td><span class="chip">EVL-2248</span></td>
+                <td style="color:var(--slate)">gpt-4o</td>
+                <td><span class="mono" style="color:var(--pass);font-weight:700">91.8</span></td>
+                <td><span class="badge badge-pass">✓ Pass</span></td>
+                <td style="color:var(--muted)">43m ago</td>
+              </tr>
+              <tr class="clickable" onclick="openRun('EVL-2247')">
+                <td><span class="chip">EVL-2247</span></td>
+                <td style="color:var(--slate)">gpt-4o</td>
+                <td><span class="mono" style="color:var(--pass);font-weight:700">90.5</span></td>
+                <td><span class="badge badge-pass">✓ Pass</span></td>
+                <td style="color:var(--muted)">2h ago</td>
+              </tr>
+              <tr class="clickable" onclick="openRun('EVL-2246')">
+                <td><span class="chip">EVL-2246</span></td>
+                <td style="color:var(--slate)">llama-3-70b</td>
+                <td><span class="mono" style="color:var(--fail);font-weight:700">74.1</span></td>
+                <td><span class="badge badge-fail">✗ Block</span></td>
+                <td style="color:var(--muted)">5h ago</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Failing categories -->
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">⚠ Top Failing Categories (7d · all models)</span>
+      </div>
+      <div class="fail-cats">
+        <div class="fail-cat">
+          <div class="fail-cat-top"><span class="fail-cat-name">Medication Dosage</span><span class="fail-cat-pct" style="color:var(--fail)">31%</span></div>
+          <div class="prog"><div class="prog-fill prog-fail" style="width:31%"></div></div>
+        </div>
+        <div class="fail-cat">
+          <div class="fail-cat-top"><span class="fail-cat-name">Lab Value Extraction</span><span class="fail-cat-pct" style="color:var(--warn)">19%</span></div>
+          <div class="prog"><div class="prog-fill prog-warn" style="width:19%"></div></div>
+        </div>
+        <div class="fail-cat">
+          <div class="fail-cat-top"><span class="fail-cat-name">Clinical Summarization</span><span class="fail-cat-pct" style="color:var(--warn)">14%</span></div>
+          <div class="prog"><div class="prog-fill prog-warn" style="width:14%"></div></div>
+        </div>
+        <div class="fail-cat">
+          <div class="fail-cat-top"><span class="fail-cat-name">ICD-10 Coding</span><span class="fail-cat-pct" style="color:var(--pass)">6%</span></div>
+          <div class="prog"><div class="prog-fill prog-pass" style="width:6%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SCREEN: EVAL RUNS
+  ═══════════════════════════════════════ -->
+  <div class="screen" id="screen-runs">
+    <div class="ph">
+      <div class="ph-left">
+        <h1>Eval Runs</h1>
+        <p>2,249 total runs · sorted by most recent</p>
+      </div>
+      <div class="ph-actions">
+        <button class="btn btn-secondary">⬇ Export</button>
+        <button class="btn btn-primary">+ Trigger Run</button>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <button class="btn btn-secondary btn-sm">🔍 Filter</button>
+      <button class="btn btn-secondary btn-sm" style="color:var(--signal);border-color:var(--signal2)">All Models ▾</button>
+      <button class="btn btn-secondary btn-sm">All Statuses ▾</button>
+      <button class="btn btn-secondary btn-sm">Last 30 days ▾</button>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto">⟳ Refresh</button>
+    </div>
+
+    <div class="card" style="padding:0; overflow:hidden">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Run ID</th><th>Model</th><th>Prompt Ver</th>
+            <th>Quality</th><th>Faithfulness</th><th>Relevance</th>
+            <th>Gate</th><th>Triggered By</th><th>Duration</th><th>Time</th>
+          </tr></thead>
+          <tbody>
+            <tr class="clickable" onclick="openRun('EVL-2249')">
+              <td><span class="chip">EVL-2249</span></td>
+              <td>claude-3-sonnet-20240229</td>
+              <td><span class="chip">v2.3.1</span></td>
+              <td><span class="mono" style="color:var(--warn);font-weight:700">81.2</span></td>
+              <td style="color:var(--warn)" class="mono">0.78</td>
+              <td style="color:var(--pass)" class="mono">0.89</td>
+              <td><span class="badge badge-warn">⚠ Warn</span></td>
+              <td><span class="badge badge-muted">CI / PR #289</span></td>
+              <td class="mono" style="color:var(--muted)">4m 12s</td>
+              <td style="color:var(--muted)">12m ago</td>
+            </tr>
+            <tr class="clickable" onclick="openRun('EVL-2248')">
+              <td><span class="chip">EVL-2248</span></td>
+              <td>gpt-4o-2024-11-20</td>
+              <td><span class="chip">v2.3.1</span></td>
+              <td><span class="mono" style="color:var(--pass);font-weight:700">91.8</span></td>
+              <td style="color:var(--pass)" class="mono">0.94</td>
+              <td style="color:var(--pass)" class="mono">0.91</td>
+              <td><span class="badge badge-pass">✓ Pass</span></td>
+              <td><span class="badge badge-muted">CI / PR #288</span></td>
+              <td class="mono" style="color:var(--muted)">3m 55s</td>
+              <td style="color:var(--muted)">43m ago</td>
+            </tr>
+            <tr class="clickable" onclick="openRun('EVL-2247')">
+              <td><span class="chip">EVL-2247</span></td>
+              <td>gpt-4o-2024-11-20</td>
+              <td><span class="chip">v2.3.0</span></td>
+              <td><span class="mono" style="color:var(--pass);font-weight:700">90.5</span></td>
+              <td style="color:var(--pass)" class="mono">0.92</td>
+              <td style="color:var(--pass)" class="mono">0.90</td>
+              <td><span class="badge badge-pass">✓ Pass</span></td>
+              <td><span class="badge badge-sig">Scheduled</span></td>
+              <td class="mono" style="color:var(--muted)">3m 47s</td>
+              <td style="color:var(--muted)">2h ago</td>
+            </tr>
+            <tr class="clickable" onclick="openRun('EVL-2246')">
+              <td><span class="chip">EVL-2246</span></td>
+              <td>llama-3-70b-instruct</td>
+              <td><span class="chip">v2.3.0</span></td>
+              <td><span class="mono" style="color:var(--fail);font-weight:700">74.1</span></td>
+              <td style="color:var(--fail)" class="mono">0.71</td>
+              <td style="color:var(--warn)" class="mono">0.79</td>
+              <td><span class="badge badge-fail">✗ Block</span></td>
+              <td><span class="badge badge-muted">CI / PR #287</span></td>
+              <td class="mono" style="color:var(--muted)">5m 02s</td>
+              <td style="color:var(--muted)">5h ago</td>
+            </tr>
+            <tr class="clickable">
+              <td><span class="chip">EVL-2245</span></td>
+              <td>gpt-4o-2024-11-20</td>
+              <td><span class="chip">v2.3.0</span></td>
+              <td><span class="mono" style="color:var(--pass);font-weight:700">92.1</span></td>
+              <td style="color:var(--pass)" class="mono">0.95</td>
+              <td style="color:var(--pass)" class="mono">0.93</td>
+              <td><span class="badge badge-pass">✓ Pass</span></td>
+              <td><span class="badge badge-sig">Scheduled</span></td>
+              <td class="mono" style="color:var(--muted)">3m 38s</td>
+              <td style="color:var(--muted)">8h ago</td>
+            </tr>
+            <tr class="clickable">
+              <td><span class="chip">EVL-2244</span></td>
+              <td>claude-3-sonnet-20240229</td>
+              <td><span class="chip">v2.2.9</span></td>
+              <td><span class="mono" style="color:var(--pass);font-weight:700">87.4</span></td>
+              <td style="color:var(--pass)" class="mono">0.89</td>
+              <td style="color:var(--pass)" class="mono">0.88</td>
+              <td><span class="badge badge-pass">✓ Pass</span></td>
+              <td><span class="badge badge-muted">CI / PR #286</span></td>
+              <td class="mono" style="color:var(--muted)">4m 05s</td>
+              <td style="color:var(--muted)">1d ago</td>
+            </tr>
+            <tr class="clickable">
+              <td><span class="chip">EVL-2243</span></td>
+              <td>gemini-1.5-pro</td>
+              <td><span class="chip">v2.2.9</span></td>
+              <td><span class="mono" style="color:var(--pass);font-weight:700">88.9</span></td>
+              <td style="color:var(--pass)" class="mono">0.91</td>
+              <td style="color:var(--pass)" class="mono">0.87</td>
+              <td><span class="badge badge-pass">✓ Pass</span></td>
+              <td><span class="badge badge-muted">Manual</span></td>
+              <td class="mono" style="color:var(--muted)">6m 14s</td>
+              <td style="color:var(--muted)">1d ago</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination" style="padding:12px 18px">
+        <span class="pag-info">Showing 7 of 2,249 runs</span>
+        <div class="pag-btns">
+          <button class="btn btn-secondary btn-sm">← Prev</button>
+          <button class="btn btn-secondary btn-sm" style="background:var(--sig-dim);color:var(--signal);border-color:var(--signal2)">1</button>
+          <button class="btn btn-secondary btn-sm">2</button>
+          <button class="btn btn-secondary btn-sm">3</button>
+          <button class="btn btn-secondary btn-sm">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SCREEN: RUN DETAIL
+  ═══════════════════════════════════════ -->
+  <div class="screen" id="screen-run-detail">
+    <div class="back" onclick="goTo('runs', document.getElementById('nav-runs'))">← Back to Eval Runs</div>
+
+    <div class="ph">
+      <div class="ph-left">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <h1 id="rd-title">Run EVL-2249</h1>
+          <span class="badge" id="rd-badge">⚠ Warn</span>
+        </div>
+        <p id="rd-meta">claude-3-sonnet-20240229 · Prompt v2.3.1 · CI trigger: PR #289 · Jun 26, 2025 at 09:14 AM</p>
+      </div>
+      <div class="ph-actions">
+        <button class="btn btn-secondary btn-sm">📋 Copy link</button>
+        <button class="btn btn-secondary btn-sm">📥 Export JSON</button>
+      </div>
+    </div>
+
+    <div class="gate-banner gb-warn" id="rd-gate">
+      <div class="gate-icon" id="rd-gate-icon">⚠️</div>
+      <div>
+        <div class="gate-title" id="rd-gate-title">Regression Warning — Faithfulness fell below warn threshold</div>
+        <div class="gate-desc" id="rd-gate-desc">Faithfulness: 0.78 (threshold: warn ≥ 0.80 / block ≤ 0.75). Quality Score: 81.2 (prev avg: 87.4, Δ −6.2). Gate decision: WARNING — PR may proceed, PagerDuty alert fired.</div>
+      </div>
+    </div>
+
+    <div class="three-col">
+      <div class="metric-card">
+        <div class="metric-label">Faithfulness</div>
+        <div class="metric-val warn" id="rd-faith">0.78</div>
+        <div class="metric-threshold" id="rd-faith-thresh">warn ≥ 0.80 · block ≤ 0.75</div>
+        <div class="prog"><div class="prog-fill prog-warn" id="rd-faith-prog" style="width:78%"></div></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Relevance</div>
+        <div class="metric-val pass" id="rd-rel">0.89</div>
+        <div class="metric-threshold">warn ≥ 0.82 · block ≤ 0.78</div>
+        <div class="prog"><div class="prog-fill prog-pass" id="rd-rel-prog" style="width:89%"></div></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Context Recall</div>
+        <div class="metric-val pass" id="rd-ctx">0.85</div>
+        <div class="metric-threshold">warn ≥ 0.80 · block ≤ 0.75</div>
+        <div class="prog"><div class="prog-fill prog-pass" id="rd-ctx-prog" style="width:85%"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">🧪 Golden Set Results</span>
+        <div style="display:flex;gap:8px;font-size:12px">
+          <span style="color:var(--pass)">✓ 38 passed</span>
+          <span style="color:var(--warn)">⚠ 7 warn</span>
+          <span style="color:var(--fail)">✗ 5 failed</span>
+          <span style="color:var(--muted)">/ 50 total</span>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Test ID</th><th>Category</th><th>Faithfulness</th><th>Relevance</th><th>Context Recall</th><th>Status</th><th>Δ vs prev</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="chip">GT-0041</span></td><td>Medication Dosage</td>
+              <td class="mono" style="color:var(--fail)">0.62</td><td class="mono" style="color:var(--pass)">0.91</td><td class="mono" style="color:var(--warn)">0.79</td>
+              <td><span class="badge badge-fail">✗ Fail</span></td><td class="dneg">▼ 0.21</td>
+            </tr>
+            <tr>
+              <td><span class="chip">GT-0038</span></td><td>Medication Dosage</td>
+              <td class="mono" style="color:var(--fail)">0.68</td><td class="mono" style="color:var(--pass)">0.87</td><td class="mono" style="color:var(--pass)">0.83</td>
+              <td><span class="badge badge-fail">✗ Fail</span></td><td class="dneg">▼ 0.18</td>
+            </tr>
+            <tr>
+              <td><span class="chip">GT-0022</span></td><td>Lab Value Extraction</td>
+              <td class="mono" style="color:var(--warn)">0.77</td><td class="mono" style="color:var(--pass)">0.88</td><td class="mono" style="color:var(--pass)">0.86</td>
+              <td><span class="badge badge-warn">⚠ Warn</span></td><td class="dneg">▼ 0.09</td>
+            </tr>
+            <tr>
+              <td><span class="chip">GT-0015</span></td><td>Clinical Summarization</td>
+              <td class="mono" style="color:var(--pass)">0.93</td><td class="mono" style="color:var(--pass)">0.94</td><td class="mono" style="color:var(--pass)">0.91</td>
+              <td><span class="badge badge-pass">✓ Pass</span></td><td class="dpos">▲ 0.02</td>
+            </tr>
+            <tr>
+              <td><span class="chip">GT-0009</span></td><td>ICD-10 Coding</td>
+              <td class="mono" style="color:var(--pass)">0.96</td><td class="mono" style="color:var(--pass)">0.95</td><td class="mono" style="color:var(--pass)">0.94</td>
+              <td><span class="badge badge-pass">✓ Pass</span></td><td class="dneu">→ 0.00</td>
+            </tr>
+            <tr>
+              <td><span class="chip">GT-0003</span></td><td>Medication Dosage</td>
+              <td class="mono" style="color:var(--warn)">0.79</td><td class="mono" style="color:var(--pass)">0.90</td><td class="mono" style="color:var(--warn)">0.81</td>
+              <td><span class="badge badge-warn">⚠ Warn</span></td><td class="dneg">▼ 0.07</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card" style="margin-bottom:0">
+        <div class="card-hdr"><span class="card-title">🔗 Data Lineage</span></div>
+        <div>
+          <div class="lin-row"><span class="lin-key">Lakehouse table</span><span class="chip">eval_results.runs_v1</span></div>
+          <div class="lin-row"><span class="lin-key">Partition</span><span class="chip" style="font-size:10.5px">dt=2025-06-26/model=claude-3-sonnet</span></div>
+          <div class="lin-row"><span class="lin-key">Golden set version</span><span class="chip">golden-set-v4.2 (50 cases)</span></div>
+          <div class="lin-row"><span class="lin-key">Embeddings model</span><span class="chip">text-embedding-3-small</span></div>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:14px">🗄 View partition in Lakehouse →</button>
+      </div>
+
+      <div class="card" style="margin-bottom:0">
+        <div class="card-hdr"><span class="card-title">🎬 CI Context</span></div>
+        <div>
+          <div class="lin-row"><span class="lin-key">Pull request</span><span style="color:var(--signal)">#289 — feat: update medication extraction prompt</span></div>
+          <div class="lin-row"><span class="lin-key">Author</span><span>sarah.chen@pareit.com</span></div>
+          <div class="lin-row"><span class="lin-key">Branch</span><span class="chip">feat/medication-prompt-v2</span></div>
+          <div class="lin-row"><span class="lin-key">Gate outcome</span><span id="rd-ci-gate"><span class="badge badge-warn">Warning — PR may proceed</span></span></div>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:14px">↗ View PR on GitHub</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SCREEN: QUALITY TRENDS
+  ═══════════════════════════════════════ -->
+  <div class="screen" id="screen-trends">
+    <div class="ph">
+      <div class="ph-left">
+        <h1>Quality Trends</h1>
+        <p>Historical quality scores across models and prompt versions</p>
+      </div>
+      <div class="ph-actions">
+        <button class="btn btn-secondary btn-sm">📅 Last 30 days ▾</button>
+        <button class="btn btn-secondary btn-sm">⬇ Export CSV</button>
+      </div>
+    </div>
+
+    <div class="model-chips">
+      <span class="label">Models:</span>
+      <div class="mchip mchip-sig"><span class="dot" style="background:var(--signal)"></span> gpt-4o</div>
+      <div class="mchip mchip-vio"><span class="dot" style="background:#a78bfa"></span> claude-3-sonnet</div>
+      <div class="mchip mchip-amb"><span class="dot" style="background:var(--warn)"></span> llama-3-70b</div>
+      <div class="mchip mchip-off"><span class="dot" style="background:var(--muted)"></span> gemini-1.5-pro</div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">Quality Score Over Time</span>
+        <div style="display:flex;gap:14px;font-size:12px;align-items:center">
+          <span style="color:var(--signal)" class="mono">● gpt-4o</span>
+          <span style="color:#c4b5fd" class="mono">- claude-3-sonnet</span>
+          <span style="color:var(--warn)" class="mono">· llama-3-70b</span>
+        </div>
+      </div>
+      <svg width="100%" height="230" viewBox="0 0 800 230" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#38bdf8" stop-opacity=".15"/>
+            <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <!-- Grid -->
+        <line x1="0" y1="46"  x2="800" y2="46"  stroke="#1e3d5c" stroke-width="1" stroke-dasharray="5,4"/>
+        <line x1="0" y1="92"  x2="800" y2="92"  stroke="#1e3d5c" stroke-width="1" stroke-dasharray="5,4"/>
+        <line x1="0" y1="138" x2="800" y2="138" stroke="#1e3d5c" stroke-width="1" stroke-dasharray="5,4"/>
+        <line x1="0" y1="184" x2="800" y2="184" stroke="#1e3d5c" stroke-width="1" stroke-dasharray="5,4"/>
+        <!-- Y labels -->
+        <text x="8" y="50"  fill="#4a7a9b" font-size="11" font-family="JetBrains Mono,monospace">100</text>
+        <text x="8" y="96"  fill="#4a7a9b" font-size="11" font-family="JetBrains Mono,monospace">90</text>
+        <text x="8" y="142" fill="#4a7a9b" font-size="11" font-family="JetBrains Mono,monospace">80</text>
+        <text x="8" y="188" fill="#4a7a9b" font-size="11" font-family="JetBrains Mono,monospace">70</text>
+        <!-- gpt-4o (signal blue, solid) -->
+        <path d="M40,110 C100,100 160,94 220,88 S340,78 400,72 S520,62 580,58 S700,50 760,46"
+              fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- claude-3-sonnet (violet, dashed) -->
+        <path d="M40,122 C100,114 160,108 220,110 S340,100 400,96 S520,104 580,108 S700,106 760,116"
+              fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10,4"/>
+        <!-- llama-3-70b (amber, dotted) -->
+        <path d="M40,158 C100,148 160,154 220,162 S340,158 400,164 S520,170 580,166 S700,162 760,170"
+              fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4,4"/>
+        <!-- Prompt change markers -->
+        <line x1="300" y1="28" x2="300" y2="206" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4,3" opacity=".7"/>
+        <text x="302" y="26" fill="#fbbf24" font-size="10" font-family="JetBrains Mono,monospace">v2.1</text>
+        <line x1="520" y1="28" x2="520" y2="206" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4,3" opacity=".7"/>
+        <text x="522" y="26" fill="#fbbf24" font-size="10" font-family="JetBrains Mono,monospace">v2.2</text>
+        <line x1="680" y1="28" x2="680" y2="206" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4,3" opacity=".7"/>
+        <text x="682" y="26" fill="#fbbf24" font-size="10" font-family="JetBrains Mono,monospace">v2.3</text>
+        <!-- End dots -->
+        <circle cx="760" cy="46"  r="4.5" fill="#38bdf8"  stroke="#071524" stroke-width="2"/>
+        <circle cx="760" cy="116" r="4.5" fill="#a78bfa"  stroke="#071524" stroke-width="2"/>
+        <circle cx="760" cy="170" r="4.5" fill="#fbbf24"  stroke="#071524" stroke-width="2"/>
+      </svg>
+      <div style="display:flex;justify-content:space-between;padding:0 8px;margin-top:6px">
+        <span class="chart-label">Jun 1</span><span class="chart-label">Jun 8</span>
+        <span class="chart-label">Jun 15</span><span class="chart-label">Jun 22</span>
+        <span class="chart-label">Jun 26</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">📌 Prompt Change Impact</span>
+        <span class="card-meta">Effect on quality score per model per prompt release</span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Prompt Ver</th><th>Shipped</th><th>gpt-4o Δ</th><th>claude-3-sonnet Δ</th><th>llama-3-70b Δ</th><th>Key Change</th><th>Net</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="chip">v2.3.1</span></td><td style="color:var(--muted)">Jun 26</td>
+              <td class="dpos">+0.3</td><td class="dneg">−6.2</td><td class="dneu">—</td>
+              <td>Restructured medication extraction prompt</td>
+              <td><span class="badge badge-warn">⚠ Mixed</span></td>
+            </tr>
+            <tr>
+              <td><span class="chip">v2.3.0</span></td><td style="color:var(--muted)">Jun 22</td>
+              <td class="dpos">+2.1</td><td class="dpos">+3.4</td><td class="dpos">+1.8</td>
+              <td>Added CoT for clinical summarization</td>
+              <td><span class="badge badge-pass">✓ Positive</span></td>
+            </tr>
+            <tr>
+              <td><span class="chip">v2.2.9</span></td><td style="color:var(--muted)">Jun 18</td>
+              <td class="dpos">+1.4</td><td class="dneg">−0.8</td><td class="dneg">−3.2</td>
+              <td>Tightened context window (2k → 1.5k tokens)</td>
+              <td><span class="badge badge-warn">⚠ Mixed</span></td>
+            </tr>
+            <tr>
+              <td><span class="chip">v2.2.8</span></td><td style="color:var(--muted)">Jun 12</td>
+              <td class="dpos">+3.2</td><td class="dpos">+4.1</td><td class="dpos">+2.7</td>
+              <td>Added few-shot ICD-10 examples</td>
+              <td><span class="badge badge-pass">✓ Positive</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SCREEN: REGRESSION GATES
+  ═══════════════════════════════════════ -->
+  <div class="screen" id="screen-gates">
+    <div class="ph">
+      <div class="ph-left">
+        <h1>Regression Gates</h1>
+        <p>CI/CD quality thresholds — threshold changes require review</p>
+      </div>
+      <div class="ph-actions">
+        <button class="btn btn-secondary btn-sm">📋 Audit Log</button>
+        <button class="btn btn-primary btn-sm">Save Changes</button>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card" style="margin-bottom:0">
+        <div class="card-hdr">
+          <span class="card-title">⚙ Gate Configuration</span>
+          <span class="badge badge-pass">Active</span>
+        </div>
+        <div class="thresh-row">
+          <div class="thresh-name">Faithfulness</div>
+          <div class="thresh-desc">Block ≤ 0.75 · Warn ≤ 0.80</div>
+          <div class="thresh-val">0.80</div>
+          <div class="toggle"></div>
+        </div>
+        <div class="thresh-row">
+          <div class="thresh-name">Relevance</div>
+          <div class="thresh-desc">Block ≤ 0.78 · Warn ≤ 0.82</div>
+          <div class="thresh-val">0.82</div>
+          <div class="toggle"></div>
+        </div>
+        <div class="thresh-row">
+          <div class="thresh-name">Context Recall</div>
+          <div class="thresh-desc">Block ≤ 0.75 · Warn ≤ 0.80</div>
+          <div class="thresh-val">0.80</div>
+          <div class="toggle"></div>
+        </div>
+        <div class="thresh-row">
+          <div class="thresh-name">Quality Score</div>
+          <div class="thresh-desc">Block ≤ 80 · Warn ≤ 85</div>
+          <div class="thresh-val">85.0</div>
+          <div class="toggle"></div>
+        </div>
+        <div class="thresh-row">
+          <div class="thresh-name">Regression Δ</div>
+          <div class="thresh-desc">Block if score drops ≥ 10 pts · Warn ≥ 5 pts</div>
+          <div class="thresh-val">5 pts</div>
+          <div class="toggle"></div>
+        </div>
+        <div class="thresh-row">
+          <div class="thresh-name">Override quorum</div>
+          <div class="thresh-desc">BLOCK requires 2 LGTMs from evallake/approvers</div>
+          <div class="thresh-val">2×</div>
+          <div class="toggle"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:0">
+        <div class="card-hdr"><span class="card-title">📦 GitHub Actions Integration</span></div>
+        <div class="code-block"><span class="c-cmt"># .github/workflows/eval-gate.yml</span>
+<span class="c-kw">name</span>: <span class="c-str">EvalLake Quality Gate</span>
+<span class="c-kw">on</span>: [<span class="c-val">pull_request</span>]
+
+<span class="c-kw">jobs</span>:
+  <span class="c-prop">eval-gate</span>:
+    <span class="c-kw">runs-on</span>: <span class="c-val">ubuntu-latest</span>
+    <span class="c-kw">steps</span>:
+      - <span class="c-kw">uses</span>: <span class="c-str">actions/checkout@v4</span>
+      - <span class="c-kw">name</span>: <span class="c-str">Run EvalLake Gate</span>
+        <span class="c-kw">uses</span>: <span class="c-str">evallake/gate-action@v1</span>
+        <span class="c-kw">with</span>:
+          <span class="c-prop">api-key</span>: <span class="c-str">${{ secrets.EVALLAKE_KEY }}</span>
+          <span class="c-prop">model</span>: <span class="c-str">claude-3-sonnet</span>
+          <span class="c-prop">golden-set</span>: <span class="c-str">golden-set-v4.2</span>
+          <span class="c-prop">fail-on</span>: <span class="c-str">block</span>
+          <span class="c-prop">timeout-minutes</span>: <span class="c-val">8</span></div>
+
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--rim)">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Webhook endpoint</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div class="chip" style="flex:1;padding:7px 10px;font-size:11px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">https://api.evallake.io/v1/gate/hook/xk29a7mq...</div>
+            <button class="btn btn-secondary btn-sm">Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">📜 Recent Gate Decisions</span>
+        <span class="card-meta">Last 7 days · Override rate: 1/5 (20%)</span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Run</th><th>PR</th><th>Model</th><th>Quality</th><th>Faithfulness</th><th>Decision</th><th>Override</th><th>Time</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="chip">EVL-2249</span></td>
+              <td style="color:var(--signal)">#289</td>
+              <td>claude-3-sonnet</td>
+              <td class="mono" style="color:var(--warn)">81.2</td>
+              <td class="mono" style="color:var(--warn)">0.78</td>
+              <td><span class="badge badge-warn">⚠ Warning</span></td>
+              <td style="color:var(--muted)">Not required</td>
+              <td style="color:var(--muted)">12m ago</td>
+            </tr>
+            <tr>
+              <td><span class="chip">EVL-2248</span></td>
+              <td style="color:var(--signal)">#288</td>
+              <td>gpt-4o</td>
+              <td class="mono" style="color:var(--pass)">91.8</td>
+              <td class="mono" style="color:var(--pass)">0.94</td>
+              <td><span class="badge badge-pass">✓ Pass</span></td>
+              <td style="color:var(--muted)">—</td>
+              <td style="color:var(--muted)">43m ago</td>
+            </tr>
+            <tr>
+              <td><span class="chip">EVL-2246</span></td>
+              <td style="color:var(--signal)">#287</td>
+              <td>llama-3-70b</td>
+              <td class="mono" style="color:var(--fail)">74.1</td>
+              <td class="mono" style="color:var(--fail)">0.71</td>
+              <td><span class="badge badge-fail">✗ Blocked</span></td>
+              <td><span class="badge badge-sig">2× LGTM override</span></td>
+              <td style="color:var(--muted)">5h ago</td>
+            </tr>
+            <tr>
+              <td><span class="chip">EVL-2241</span></td>
+              <td style="color:var(--signal)">#285</td>
+              <td>gpt-4o</td>
+              <td class="mono" style="color:var(--pass)">93.2</td>
+              <td class="mono" style="color:var(--pass)">0.96</td>
+              <td><span class="badge badge-pass">✓ Pass</span></td>
+              <td style="color:var(--muted)">—</td>
+              <td style="color:var(--muted)">1d ago</td>
+            </tr>
+            <tr>
+              <td><span class="chip">EVL-2239</span></td>
+              <td style="color:var(--signal)">#284</td>
+              <td>claude-3-sonnet</td>
+              <td class="mono" style="color:var(--pass)">87.4</td>
+              <td class="mono" style="color:var(--pass)">0.89</td>
+              <td><span class="badge badge-pass">✓ Pass</span></td>
+              <td style="color:var(--muted)">—</td>
+              <td style="color:var(--muted)">1d ago</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SCREEN: SETTINGS
+  ═══════════════════════════════════════ -->
+  <div class="screen" id="screen-settings">
+    <div class="ph">
+      <div class="ph-left"><h1>Settings</h1><p>Workspace configuration, integrations, and team access</p></div>
+    </div>
+    <div class="card">
+      <div class="settings-empty">
+        <div class="s-icon">⚙️</div>
+        <h3>Settings</h3>
+        <p>Integrations, golden set management, team roles, notification preferences, and audit log export — next sprint (Milestone 4, Issue #15).</p>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /content -->
+</main>
+
+<script>
+// ─── Run data for dynamic detail screen ───
+const RUNS = {
+  'EVL-2249': {
+    title: 'Run EVL-2249',
+    badgeCls: 'badge-warn', badgeTxt: '⚠ Warning',
+    meta: 'claude-3-sonnet-20240229 · Prompt v2.3.1 · CI trigger: PR #289 · Jun 26, 2025 at 09:14 AM',
+    gateCls: 'gb-warn', gateIcon: '⚠️',
+    gateTitle: 'Regression Warning — Faithfulness fell below warn threshold',
+    gateDesc: 'Faithfulness: 0.78 (threshold: warn ≥ 0.80 / block ≤ 0.75). Quality Score: 81.2 (prev avg: 87.4, Δ −6.2). Gate decision: WARNING — PR may proceed, PagerDuty alert fired.',
+    faith: '0.78', faithCls: 'warn', faithPct: '78%', faithProgCls: 'prog-warn',
+    rel:   '0.89', relCls:   'pass', relPct:   '89%', relProgCls:   'prog-pass',
+    ctx:   '0.85', ctxCls:   'pass', ctxPct:   '85%', ctxProgCls:   'prog-pass',
+    ciGate: '<span class="badge badge-warn">Warning — PR may proceed</span>',
+  },
+  'EVL-2248': {
+    title: 'Run EVL-2248',
+    badgeCls: 'badge-pass', badgeTxt: '✓ Pass',
+    meta: 'gpt-4o-2024-11-20 · Prompt v2.3.1 · CI trigger: PR #288 · Jun 26, 2025 at 08:32 AM',
+    gateCls: 'gb-pass', gateIcon: '✅',
+    gateTitle: 'Regression Gate Passed — All metrics above threshold',
+    gateDesc: 'Faithfulness: 0.94 · Relevance: 0.91 · Context Recall: 0.93. Quality Score: 91.8 (prev avg: 90.5, Δ +1.3). Gate decision: PASS — PR cleared to merge.',
+    faith: '0.94', faithCls: 'pass', faithPct: '94%', faithProgCls: 'prog-pass',
+    rel:   '0.91', relCls:   'pass', relPct:   '91%', relProgCls:   'prog-pass',
+    ctx:   '0.93', ctxCls:   'pass', ctxPct:   '93%', ctxProgCls:   'prog-pass',
+    ciGate: '<span class="badge badge-pass">Pass — cleared to merge</span>',
+  },
+  'EVL-2247': {
+    title: 'Run EVL-2247',
+    badgeCls: 'badge-pass', badgeTxt: '✓ Pass',
+    meta: 'gpt-4o-2024-11-20 · Prompt v2.3.0 · Scheduled run · Jun 26, 2025 at 06:00 AM',
+    gateCls: 'gb-pass', gateIcon: '✅',
+    gateTitle: 'Scheduled Run — All metrics above threshold',
+    gateDesc: 'Faithfulness: 0.92 · Relevance: 0.90 · Context Recall: 0.91. Quality Score: 90.5 (stable vs prev, Δ −0.3). No gate action required for scheduled runs.',
+    faith: '0.92', faithCls: 'pass', faithPct: '92%', faithProgCls: 'prog-pass',
+    rel:   '0.90', relCls:   'pass', relPct:   '90%', relProgCls:   'prog-pass',
+    ctx:   '0.91', ctxCls:   'pass', ctxPct:   '91%', ctxProgCls:   'prog-pass',
+    ciGate: '<span class="badge badge-muted">Scheduled — no gate</span>',
+  },
+  'EVL-2246': {
+    title: 'Run EVL-2246',
+    badgeCls: 'badge-fail', badgeTxt: '✗ Blocked',
+    meta: 'llama-3-70b-instruct · Prompt v2.3.0 · CI trigger: PR #287 · Jun 25, 2025 at 04:20 PM',
+    gateCls: 'gb-fail', gateIcon: '🚫',
+    gateTitle: 'Regression Gate Blocked — Faithfulness below block threshold',
+    gateDesc: 'Faithfulness: 0.71 (threshold: block ≤ 0.75). Quality Score: 74.1 (prev avg: 82.3, Δ −8.2). Gate decision: BLOCKED — PR was overridden with 2 LGTM approvals from evallake/approvers.',
+    faith: '0.71', faithCls: 'fail', faithPct: '71%', faithProgCls: 'prog-fail',
+    rel:   '0.79', relCls:   'warn', relPct:   '79%', relProgCls:   'prog-warn',
+    ctx:   '0.75', ctxCls:   'warn', ctxPct:   '75%', ctxProgCls:   'prog-warn',
+    ciGate: '<span class="badge badge-fail">Blocked — 2× LGTM override applied</span>',
+  },
+};
+
+const CRUMBS = {
+  overview: ['Overview'],
+  runs: ['Eval Runs'],
+  trends: ['Quality Trends'],
+  gates: ['Regression Gates'],
+  settings: ['Settings'],
+};
+
+function goTo(screen, navEl) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  const el = document.getElementById('screen-' + screen);
+  if (el) el.classList.add('active');
+  if (navEl) navEl.classList.add('active');
+
+  const parts = CRUMBS[screen] || [screen];
+  document.getElementById('crumb').innerHTML =
+    '<span>EvalLake</span><span class="sep">›</span>' +
+    parts.map((p, i) => i === parts.length - 1
+      ? `<span class="current">${p}</span>`
+      : `<span class="link" onclick="goTo('runs', document.getElementById('nav-runs'))">${p}</span><span class="sep">›</span>`
+    ).join('');
+}
+
+function openRun(runId) {
+  const r = RUNS[runId];
+  if (!r) return;
+
+  // Populate header
+  document.getElementById('rd-title').textContent = r.title;
+  const badge = document.getElementById('rd-badge');
+  badge.className = 'badge ' + r.badgeCls;
+  badge.textContent = r.badgeTxt;
+  document.getElementById('rd-meta').textContent = r.meta;
+
+  // Gate banner
+  const gate = document.getElementById('rd-gate');
+  gate.className = 'gate-banner ' + r.gateCls;
+  document.getElementById('rd-gate-icon').textContent = r.gateIcon;
+  document.getElementById('rd-gate-title').textContent = r.gateTitle;
+  document.getElementById('rd-gate-desc').textContent = r.gateDesc;
+
+  // Metrics
+  const setMetric = (id, val, cls, pct, progId, progCls) => {
+    const el = document.getElementById(id);
+    el.textContent = val; el.className = 'metric-val ' + cls;
+    const prog = document.getElementById(progId);
+    prog.className = 'prog-fill ' + progCls;
+    prog.style.width = pct;
+  };
+  setMetric('rd-faith', r.faith, r.faithCls, r.faithPct, 'rd-faith-prog', r.faithProgCls);
+  setMetric('rd-rel',   r.rel,   r.relCls,   r.relPct,   'rd-rel-prog',   r.relProgCls);
+  setMetric('rd-ctx',   r.ctx,   r.ctxCls,   r.ctxPct,   'rd-ctx-prog',   r.ctxProgCls);
+
+  // CI gate
+  document.getElementById('rd-ci-gate').innerHTML = r.ciGate;
+
+  // Navigate
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('screen-run-detail').classList.add('active');
+  document.getElementById('nav-runs').classList.add('active');
+
+  document.getElementById('crumb').innerHTML =
+    '<span>EvalLake</span><span class="sep">›</span>' +
+    '<span class="link" onclick="goTo(\'runs\', document.getElementById(\'nav-runs\'))">Eval Runs</span>' +
+    '<span class="sep">›</span><span class="current">' + r.title + '</span>';
+}
+</script>
+</body>
+</html>
