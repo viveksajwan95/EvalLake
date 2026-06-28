@@ -34,8 +34,6 @@ Open `index.html` in any modern browser. No server, no dependencies.
 4. **Quality Trends** — multi-model chart, prompt change impact table
 5. **Regression Gates** — threshold configuration, GitHub Actions integration snippet, gate decision history
 
-Click the ⚠ alert on the Overview to jump straight into a regression investigation.
-
 ---
 
 ## Why AI × Data, in my own words
