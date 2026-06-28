@@ -34,11 +34,13 @@ Current state at most teams:
 
 **Streams: AI × Data**
 
-The key insight is simple: eval results are just data. If you treat them as structured records and land them in a lakehouse with a consistent schema, you immediately unlock everything that data infrastructure gives you: historical trends, model comparisons, regression detection, prompt-change attribution, audit trails.
+The core idea behind EvalLake is straightforward. Evaluation results are data, and they should be treated that way.
 
-The product layer on top of that lakehouse is what makes the signal legible — to engineers running CI, to PMs reading dashboards, and to compliance teams pulling audit reports.
+Instead of leaving them in scripts or temporary files, EvalLake stores every evaluation in a lakehouse using a consistent schema. Once the data is centralized, teams gain a complete history of model performance. They see quality trends over time, compare models and prompts, identify regressions early, understand the impact of changes, and maintain an audit trail for every release.
 
-This is a genuine cross-stream opportunity. The AI stream produces the quality signal; the data stream preserves and organizes it; the product stream makes it actionable; the infra stream embeds it in the release process.
+The infrastructure alone isn't enough. The value comes from turning that data into clear, shared insights. Engineers get quality checks in their CI pipeline. Product managers see dashboards that show how models are performing. Compliance teams access the reports they need without relying on engineering.
+
+This brings together four areas that usually operate independently. AI generates the evaluation data. The data platform stores and organizes it. The product layer turns it into useful insights. The infrastructure layer makes quality checks part of every release. The result is a single, trusted source of truth for AI quality across the organization.
 
 ---
 
