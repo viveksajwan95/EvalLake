@@ -40,7 +40,13 @@ Click the ⚠ alert on the Overview to jump straight into a regression investiga
 
 ## Why AI × Data, in my own words
 
-I built an eval harness at pareIT from scratch — golden sets, offline RAG metrics, regression gates in CI/CD, online canaries. The pain I felt every day: eval results were ephemeral, quality trends were invisible, and the PM had no way to understand whether the sprint's prompt changes made things better or worse without waiting for the next round of user interviews.
+The idea for EvalLake came from a problem I ran into firsthand.
+
+At my current company, I built our evaluation framework from the ground up, including golden datasets, offline RAG metrics, regression gates in CI/CD, and online canary testing. The evaluation pipeline worked, but the results didn't.
+
+Every evaluation was treated as a one-time event. Results were scattered across scripts and logs, making it difficult to track quality over time or understand the impact of changes. As a product manager, I had no simple way to answer a basic question: Did this sprint make the model better or worse? The only reliable feedback often came days or weeks later through user interviews or production issues.
+
+That experience made it clear that the missing piece wasn't another evaluation framework. It was a system that continuously captured, organised, and surfaced AI quality in a way the entire team could use.
 
 EvalLake is the platform I wish I had. The hard part is not the metrics computation — any engineer can write a script that computes faithfulness. The hard part is the lakehouse design that makes historical quality *queryable*, and the product layer that makes it *legible* to non-ML teammates. That intersection is where I have genuine experience and genuine conviction.
 
