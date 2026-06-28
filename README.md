@@ -19,7 +19,7 @@
 
 ## The opportunity in one paragraph
 
-Teams shipping LLM products run evals in isolation — a Python script before each release, results that disappear when the terminal closes, no shared baseline for "what good looks like." When a prompt change degrades faithfulness, nobody finds out until users complain. **EvalLake** fixes this by treating eval results as structured data: ingest them into a partitioned lakehouse, compute quality trends and regressions across model and prompt versions, surface the signal through CI/CD gates and product dashboards, and link every quality delta back to the prompt change that caused it.
+Teams shipping LLM products run evals in isolation — a Python script before each release, results that disappear when the terminal closes, no shared baseline for "what good looks like." When a prompt change tanks Accuracy or spikes Hallucination Rate, nobody finds out until users complain. **EvalLake** fixes this by treating eval results as structured data: ingest them into a partitioned lakehouse, compute quality trends and regressions across model and prompt versions, surface the signal through CI/CD gates and product dashboards, and link every quality delta back to the prompt change that caused it.
 
 ---
 
@@ -30,23 +30,19 @@ Open `index.html` in any modern browser. No server, no dependencies.
 **Navigate through:**
 1. **Overview** — quality score cards, 30-day trend chart, live alert, failing categories
 2. **Eval Runs** — full run history; click any row to drill into the run
-3. **Run Detail** — gate decision banner, RAG metric cards (faithfulness / relevance / context recall), golden set results per test case, lineage + CI context
+3. **Run Detail** — gate decision banner, eval metric cards (Accuracy / ROUGE-L / BERTScore), Hallucination Rate, golden set results per test case, lineage + CI context
 4. **Quality Trends** — multi-model chart, prompt change impact table
 5. **Regression Gates** — threshold configuration, GitHub Actions integration snippet, gate decision history
+
+Click the ⚠ alert on the Overview to jump straight into a regression investigation.
 
 ---
 
 ## Why AI × Data, in my own words
 
-The idea for EvalLake came from a problem I ran into firsthand.
+I built an eval harness at pareIT from scratch — golden sets, offline metrics, regression gates in CI/CD, online canaries. The pain I felt every day: eval results were ephemeral, quality trends were invisible, and the PM had no way to understand whether the sprint's prompt changes made things better or worse without waiting for the next round of user interviews.
 
-At my current company, I built our evaluation framework from the ground up, including golden datasets, offline RAG metrics, regression gates in CI/CD, and online canary testing. The evaluation pipeline worked, but the results didn't.
-
-Every evaluation was treated as a one-time event. Results were scattered across scripts and logs, making it difficult to track quality over time or understand the impact of changes. As a product manager, I had no simple way to answer a basic question: Did this sprint make the model better or worse? The only reliable feedback often came days or weeks later through user interviews or production issues.
-
-That experience made it clear that the missing piece wasn't another evaluation framework. It was a system that continuously captured, organised, and surfaced AI quality in a way the entire team could use.
-
-EvalLake is the platform I wish I had. The hard part is not the metrics computation — any engineer can write a script that computes faithfulness. The hard part is the lakehouse design that makes historical quality *queryable*, and the product layer that makes it *legible* to non-ML teammates. That intersection is where I have genuine experience and genuine conviction.
+EvalLake is the platform I wish I had. The hard part is not the metrics computation — any engineer can write a script that computes Accuracy or ROUGE-L. The hard part is the lakehouse design that makes historical quality *queryable*, and the product layer that makes it *legible* to non-ML teammates. That intersection is where I have genuine experience and genuine conviction.
 
 ---
 
@@ -54,7 +50,7 @@ EvalLake is the platform I wish I had. The hard part is not the metrics computat
 
 | Stream | Contribution |
 |--------|-------------|
-| **AI** | Eval harness, RAG metrics (faithfulness, relevance, context recall), golden set versioning, regression detection, online canary instrumentation |
+| **AI** | Eval harness, industry-standard metrics (Accuracy, ROUGE-L, BERTScore, Hallucination Rate), golden set versioning, regression detection, online canary instrumentation |
 | **Data** | Lakehouse ingestion (Delta/Iceberg), partitioned table design, quality trend aggregation, prompt-change lineage, audit trail |
 | **Product** | Dashboard, run detail UX, CI gate UX, onboarding flow |
 | **Infra** | GitHub Actions integration, gate webhooks, PagerDuty/Slack alerting |
