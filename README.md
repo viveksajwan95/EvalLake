@@ -17,7 +17,7 @@
 
 ---
 
-## The opportunity in one paragraph
+##  Opportunity
 
 Most teams building LLM products still treat evaluations as one-off tasks. They run a Python script before a release, review the results, and move on. Those results are rarely stored in a way that makes them useful later. There is no shared baseline, no history of model quality, and no easy way to tell whether a change improved or hurt performance.
 
