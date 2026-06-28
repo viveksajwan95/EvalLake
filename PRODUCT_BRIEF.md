@@ -71,7 +71,7 @@ EvalLake is a continuous LLM quality intelligence platform with four surfaces:
 
 ## Personas
 
-**Sarah — Senior ML Engineer @ pareIT**
+**Sarah — Senior ML Engineer**
 Runs evals in a Jupyter notebook before each release. Spends 30 minutes every sprint manually comparing score printouts. Has no dashboard. When asked "did the last prompt change help?", she has to re-run everything. EvalLake lets her answer that question in 10 seconds.
 
 **James — AI Product Manager**
