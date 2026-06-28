@@ -19,7 +19,11 @@
 
 ## The opportunity in one paragraph
 
-Teams shipping LLM products run evals in isolation — a Python script before each release, results that disappear when the terminal closes, no shared baseline for "what good looks like." When a prompt change tanks Accuracy or spikes Hallucination Rate, nobody finds out until users complain. **EvalLake** fixes this by treating eval results as structured data: ingest them into a partitioned lakehouse, compute quality trends and regressions across model and prompt versions, surface the signal through CI/CD gates and product dashboards, and link every quality delta back to the prompt change that caused it.
+Most teams building LLM products still treat evaluations as one-off tasks. They run a Python script before a release, review the results, and move on. Those results are rarely stored in a way that makes them useful later. There is no shared baseline, no history of model quality, and no easy way to tell whether a change improved or hurt performance.
+
+When a prompt update reduces accuracy or increases hallucinations, the problem often goes unnoticed until users report it.
+
+EvalLake changes that by treating evaluation results as structured data instead of temporary output. Every evaluation is stored in a lakehouse, creating a complete history of model and prompt performance. From there, teams track quality trends, detect regressions, compare versions, and understand exactly which prompt or model change led to a shift in performance. Engineers see quality checks in their CI/CD pipeline, while product and compliance teams get dashboards and reports that make AI quality easy to understand and act on.
 
 ---
 
