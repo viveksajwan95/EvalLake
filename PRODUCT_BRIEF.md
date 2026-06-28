@@ -10,7 +10,7 @@ Teams building LLM products often struggle to keep track of AI quality over time
 
 ### Context
 
-LLM products ship quality bugs differently from traditional software. There is no stack trace when faithfulness regresses. A prompt change that improves ICD-10 coding can silently degrade medication dosage extraction. The feedback loop is slow: a regression ships on Tuesday and surfaces in support tickets by Friday.
+LLM products fail differently than traditional software. When AI quality drops, there isn't a stack trace pointing to the problem. A prompt update that improves one task, like ICD-10 coding, might quietly reduce accuracy on another, such as medication dosage extraction. Teams often don't notice until customers report issues days later.
 
 Current state at most teams:
 - Evals run in a one-off Python script before each release, if at all.
