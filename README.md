@@ -42,7 +42,7 @@ Open `index.html` in any modern browser. No server, no dependencies.
 
 ## Why AI × Data, in my own words
 
-The idea for EvalLake came directly from my experience at pareIT.
+The idea for EvalLake came directly from my experience at my current employer.
 
 I built our LLM evaluation framework from the ground up, including golden datasets, offline evaluation metrics, regression gates in CI/CD, and online canary testing. While the evaluation pipeline worked, I kept running into the same problem. Every evaluation was a snapshot in time. Results lived in scripts or logs, disappeared after each run, and gave us no clear picture of how quality was changing over time.
 
