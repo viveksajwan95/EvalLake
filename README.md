@@ -44,9 +44,15 @@ Click the ⚠ alert on the Overview to jump straight into a regression investiga
 
 ## Why AI × Data, in my own words
 
-I built an eval harness at pareIT from scratch — golden sets, offline metrics, regression gates in CI/CD, online canaries. The pain I felt every day: eval results were ephemeral, quality trends were invisible, and the PM had no way to understand whether the sprint's prompt changes made things better or worse without waiting for the next round of user interviews.
+The idea for EvalLake came directly from my experience at pareIT.
 
-EvalLake is the platform I wish I had. The hard part is not the metrics computation — any engineer can write a script that computes Accuracy or ROUGE-L. The hard part is the lakehouse design that makes historical quality *queryable*, and the product layer that makes it *legible* to non-ML teammates. That intersection is where I have genuine experience and genuine conviction.
+I built our LLM evaluation framework from the ground up, including golden datasets, offline evaluation metrics, regression gates in CI/CD, and online canary testing. While the evaluation pipeline worked, I kept running into the same problem. Every evaluation was a snapshot in time. Results lived in scripts or logs, disappeared after each run, and gave us no clear picture of how quality was changing over time.
+
+As a product manager, I wanted to know whether the prompt changes we made during a sprint improved the product or introduced new issues. There was no simple way to answer that question. We often had to wait for user interviews or production feedback before we understood the impact of a release.
+
+That's why I started building EvalLake. The challenge isn't calculating metrics like Accuracy or ROUGE-L. Those are straightforward. The real challenge is creating a system that stores every evaluation in a way that makes quality measurable over time, easy to compare across models and prompts, and accessible to everyone involved in shipping AI products.
+
+EvalLake brings those pieces together. It gives engineering, product, and compliance teams a shared view of AI quality, making evaluation data part of the release process instead of an isolated engineering task. That intersection of AI evaluation, data infrastructure, and product experience is where I've spent my time, and it's the problem I care most about solving.
 
 ---
 
