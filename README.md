@@ -65,7 +65,7 @@ EvalLake brings those pieces together. It gives engineering, product, and compli
 
 ---
 
-## Timebox
+## Note
 
-~3 hours.
+
 AI usage: Claude (Anthropic) used for draft review and copy editing.
