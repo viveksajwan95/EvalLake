@@ -2,7 +2,9 @@
 
 ## At a Glance
 
-Teams shipping LLM products lack a continuous, shared view of AI quality. Eval results live in disposable scripts, regressions reach production undetected, and product teams have no quality signal without reading code. EvalLake is a continuous quality intelligence platform: an evals pipeline backed by a lakehouse that makes AI quality a first-class release signal — legible to engineers, PMs, and compliance teams alike.
+Teams building LLM products often struggle to understand how AI quality changes over time. Evaluation results are scattered across scripts and logs, regressions slip into production unnoticed, and product teams have no clear way to measure model performance without relying on engineers.
+
+EvalLake brings all of that together in one place. It continuously captures evaluation results, stores them in a lakehouse, and turns them into a shared quality signal that every team can use. Engineers catch regressions before release, product managers track quality across model and prompt changes, and compliance teams have the visibility and audit history they need. Instead of treating evaluations as one-time checks, EvalLake makes AI quality a measurable part of every release.
 
 ---
 
@@ -10,7 +12,9 @@ Teams shipping LLM products lack a continuous, shared view of AI quality. Eval r
 
 ### Context
 
-LLM products ship quality bugs differently from traditional software. There is no stack trace when Accuracy regresses. A prompt change that improves ICD-10 coding can silently spike the Hallucination Rate on medication dosage extraction. The feedback loop is slow: a regression ships on Tuesday and surfaces in support tickets by Friday.
+LLM products fail in ways that traditional software doesn't. When AI quality drops, there isn't a stack trace pointing to the root cause. A prompt update that improves one task, like ICD-10 coding, might quietly reduce performance on another, such as medication dosage extraction.
+
+The problem often isn't discovered until days later. A change goes into production, users begin encountering issues, and support tickets become the first signal that something went wrong. By then, finding the source of the regression is far more difficult than catching it before release.
 
 Current state at most teams:
 - Evals run in a one-off Python script before each release, if at all.
@@ -34,11 +38,13 @@ Current state at most teams:
 
 **Streams: AI × Data**
 
-The key insight is simple: eval results are just data. If you treat them as structured records and land them in a lakehouse with a consistent schema, you immediately unlock everything that data infrastructure gives you: historical trends, model comparisons, regression detection, prompt-change attribution, audit trails.
+The idea behind EvalLake is simple. Evaluation results are data, and they should be managed like any other business-critical data.
 
-The product layer on top of that lakehouse is what makes the signal legible — to engineers running CI, to PMs reading dashboards, and to compliance teams pulling audit reports.
+Instead of leaving them in scripts or temporary files, EvalLake stores every evaluation in a lakehouse with a consistent schema. That creates a complete history of AI quality, making it easy to track performance over time, compare models and prompts, detect regressions, understand the impact of changes, and maintain an audit trail for every release.
 
-This is a genuine cross-stream opportunity. The AI stream produces the quality signal; the data stream preserves and organizes it; the product stream makes it actionable; the infra stream embeds it in the release process.
+The data alone isn't enough. What matters is making it useful across the organization. Engineers get quality checks built into their CI/CD pipeline. Product managers gain dashboards that show how model quality is evolving. Compliance teams access the reports they need without depending on engineering.
+
+EvalLake sits at the intersection of AI, data, product, and infrastructure. AI systems generate the evaluation data. The data platform stores and organizes it. The product layer turns it into insights that teams understand. The infrastructure layer makes quality checks part of every release. Together, these pieces create a shared, reliable view of AI quality for everyone involved in building and shipping LLM products.
 
 ---
 
@@ -138,7 +144,7 @@ One row per metric per test case — flat design for extensibility.
 
 ## Personas
 
-**Sarah — Senior ML Engineer @ pareIT**
+**Sarah — Senior ML Engineer @ company**
 Runs evals in a Jupyter notebook before each release. Spends 30 minutes every sprint manually comparing score printouts. Has no dashboard. When asked "did the last prompt change help?", she has to re-run everything. EvalLake lets her answer that question in 10 seconds.
 
 **James — AI Product Manager**
