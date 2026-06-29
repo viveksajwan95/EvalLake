@@ -1,6 +1,6 @@
 # EvalLake — Product Brief
 
-## TL;DR
+## At a Glance
 
 Teams shipping LLM products lack a continuous, shared view of AI quality. Eval results live in disposable scripts, regressions reach production undetected, and product teams have no quality signal without reading code. EvalLake is a continuous quality intelligence platform: an evals pipeline backed by a lakehouse that makes AI quality a first-class release signal — legible to engineers, PMs, and compliance teams alike.
 
